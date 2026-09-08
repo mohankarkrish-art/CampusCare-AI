@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>CampusCare AI | Smart College Complaint Assistant</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Icons -->
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    >
+</head>
+
+<body>
+
+    <div class="app">
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+
+            <div class="brand">
+                <div class="brand-icon">
+                    <i class="fa-solid fa-building-columns"></i>
+                </div>
+
+                <div>
+                    <h2>CampusCare AI</h2>
+                    <span>Smart Complaint Assistant</span>
+                </div>
+            </div>
+
+
+            <div class="sidebar-menu">
+
+                <div class="menu-title">COMPLAINT SUPPORT</div>
+
+                <button class="feature-item" data-message="I have an electrical issue.">
+    <i class="fa-solid fa-bolt"></i>
+    <span>Electrical Issues</span>
+</button>
+
+<button class="feature-item" data-message="I have a plumbing issue.">
+    <i class="fa-solid fa-faucet-drip"></i>
+    <span>Plumbing Issues</span>
+</button>
+
+<button class="feature-item" data-message="I have a network or Wi-Fi problem.">
+    <i class="fa-solid fa-wifi"></i>
+    <span>Network Problems</span>
+</button>
+
+<button class="feature-item" data-message="I have a maintenance issue in the college.">
+    <i class="fa-solid fa-screwdriver-wrench"></i>
+    <span>Maintenance</span>
+</button>
+
+<button class="feature-item" data-message="I have a cleaning-related issue.">
+    <i class="fa-solid fa-broom"></i>
+    <span>Cleaning Issues</span>
+</button>
+
+
+            <div class="sidebar-bottom">
+
+                <div class="ai-status">
+                    <span class="status-dot"></span>
+
+                    <div>
+                        <strong>AI Assistant Online</strong>
+                        <p>Powered by Gemini AI</p>
+                    </div>
+                </div>
+
+            </div>
+
+        </aside>
+
+
+        <!-- Main Chat Area -->
+        <main class="main-content">
+
+            <!-- Header -->
+            <header class="top-header">
+
+                <div>
+                    <p class="breadcrumb">
+                        Campus Services / AI Assistant
+                    </p>
+
+                    <h1>How can I help you today?</h1>
+
+                    <p class="header-description">
+                        Describe any college-related issue and CampusCare AI will analyze it.
+                    </p>
+                </div>
+
+
+                <div class="header-status">
+
+                    <div class="online-indicator">
+                        <span></span>
+                        System Online
+                    </div>
+
+                </div>
+
+            </header>
+
+
+            <!-- Chat Area -->
+            <section class="chat-section">
+
+                <div id="chatBox" class="chat-box">
+
+                    <!-- Welcome Message -->
+                    <div class="message bot-message">
+
+                        <div class="avatar ai-avatar">
+                            <i class="fa-solid fa-robot"></i>
+                        </div>
+
+                        <div class="message-content">
+
+                            <div class="message-label">
+                                CampusCare AI
+                            </div>
+
+                            <div class="message-bubble welcome-bubble">
+
+                                <h3>Hello! 👋</h3>
+
+                                <p>
+                                    I am your AI-powered college complaint assistant.
+                                </p>
+
+                                <p>
+                                    Describe any issue related to your campus and I will help analyze it.
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Quick Suggestions -->
+                <div class="quick-section">
+
+                    <p>Try an example:</p>
+
+                    <div class="quick-actions">
+
+                        <button class="quick-btn">
+                            <i class="fa-solid fa-fan"></i>
+                            Fan not working
+                        </button>
+
+                        <button class="quick-btn">
+                            <i class="fa-solid fa-bolt"></i>
+                            Electrical issue
+                        </button>
+
+                        <button class="quick-btn">
+                            <i class="fa-solid fa-droplet"></i>
+                            Water leakage
+                        </button>
+
+                        <button class="quick-btn">
+                            <i class="fa-solid fa-wifi"></i>
+                            Wi-Fi problem
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Input -->
+                <div class="input-container">
+
+                    <div class="input-wrapper">
+
+                        <textarea
+                            id="userInput"
+                            placeholder="Describe your college complaint..."
+                            rows="1"
+                        ></textarea>
+
+                        <button id="sendBtn" title="Send Message">
+
+                            <span>Send</span>
+                            <i class="fa-solid fa-paper-plane"></i>
+
+                        </button>
+
+                    </div>
+
+                    <p class="input-note">
+                        <i class="fa-solid fa-shield-halved"></i>
+                        CampusCare AI analyzes complaints and recommends appropriate actions.
+                    </p>
+
+                </div>
+
+            </section>
+
+        </main>
+
+    </div>
+
+
+    <script src="script.js"></script>
+
+</body>
+</html>
