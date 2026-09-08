@@ -1,6 +1,7 @@
 
 const express = require("express");
 const mongoose = require("mongoose");
+const Complaint = require("./models/complaint");
 const cors = require("cors");
 require("dotenv").config();
 
@@ -319,13 +320,37 @@ app.post("/api/complaints", async (req, res) => {
    VIEW COMPLAINTS
 ========================= */
 
-app.get("/api/complaints", (req, res) => {
+/* =========================
+   VIEW COMPLAINTS
+========================= */
 
-    res.json({
-        success: true,
-        total: complaints.length,
-        complaints
-    });
+app.get("/api/complaints", async (req, res) => {
+
+    try {
+
+        const complaints = await Complaint.find()
+            .sort({ createdAt: -1 });
+
+        res.json({
+            success: true,
+            total: complaints.length,
+            complaints
+        });
+
+    } catch (error) {
+
+        console.error(
+            "Fetch Complaints Error:",
+            error.message
+        );
+
+        res.status(500).json({
+            success: false,
+            message:
+                "Could not fetch complaints."
+        });
+
+    }
 
 });
 
