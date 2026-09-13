@@ -13,8 +13,7 @@ const chatBox = document.getElementById("chatBox");
 /* =========================
    BACKEND API URL
 ========================= */
-
-const API_URL = "http://localhost:5000/api/chat";
+const API_URL = "https://campuscare-ai-w2e6.onrender.com/api/chat";
 
 
 /* =========================
