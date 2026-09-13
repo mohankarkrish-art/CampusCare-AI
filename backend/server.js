@@ -1,132 +1,88 @@
+const dns = require("dns");
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
 const express = require("express");
-const mongoose = require("mongoose");
-const Complaint = require("./models/complaint");
 const cors = require("cors");
 require("dotenv").config();
 
-const { GoogleGenAI } = require("@google/genai");
-
 const app = express();
-mongoose
-    .connect(process.env.MONGODB_URI)
-    .then(() => {
-        console.log("MongoDB Connected Successfully!");
-    })
-    .catch((error) => {
-        console.error("MongoDB Connection Error:", error.message);
-    });
+
+const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
 
+
+// ==========================================
+// STORE CONVERSATIONS IN MEMORY
+// ==========================================
+
 const conversations = {};
 
-if (!process.env.GEMINI_API_KEY) {
-    console.error("ERROR: GEMINI_API_KEY is missing in .env file");
-}
 
-const ai = new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY
-});
+// ==========================================
+// SYSTEM PROMPT
+// ==========================================
+
+const SYSTEM_PROMPT = `
+You are CampusCare AI, a smart college complaint assistant.
+
+Your job is to understand student complaints and classify them correctly.
+
+Allowed categories:
+- Electrical
+- Plumbing
+- Cleaning
+- Internet/Network
+- Classroom Equipment
+- Security
+- Other
+
+Priority levels:
+- High
+- Medium
+- Low
 
 
-const systemPrompt = `
-You are CampusCare AI, an intelligent college complaint assistant.
+IMPORTANT RULES:
 
-Your job is to help students report college problems through conversation.
+1. Analyze the student's current complaint and the conversation history provided.
 
-IMPORTANT CONVERSATION RULE:
-Use the previous conversation messages to understand the current complaint.
-Do not treat each message as a completely new complaint.
+2. NEVER invent previous complaints or information.
 
-Your tasks:
-1. Understand the student's complaint.
-2. Identify the category.
-3. Determine the priority.
-4. Extract the problem.
-5. Extract the location.
-6. Ask for missing important information.
-7. Once enough information is available, provide a final structured complaint.
-8. Never invent missing information.
+3. Do not ask unnecessary questions.
 
-CATEGORIES:
+4. Only ask a question when important information is genuinely missing.
 
-Electrical:
-- Fans
-- Lights
-- Switches
-- Sockets
-- Wiring
-- Power problems
+5. Do not ask safety questions unless the complaint clearly indicates a safety risk.
 
-Plumbing:
-- Water leakage
-- Taps
-- Pipes
-- Toilets
-- Drainage
+6. A complaint is complete when you know:
+   - Category
+   - Problem
+   - Location
 
-Cleaning:
-- Dirty classrooms
-- Garbage
-- Washroom cleanliness
+7. Do NOT require a building name if the room/location is already clear.
 
-Internet/Network:
-- Wi-Fi problems
-- Internet connection
-- Network problems
+8. A broken classroom fan is ALWAYS Medium priority.
 
-Classroom Equipment:
-- Projector
-- Computer
-- Board
-- Desk
-- Chair
-- Laboratory equipment
+9. Sparks, exposed wires, electrical burning smell, fire risk, or dangerous electrical faults are High priority.
 
-Security:
-- Unauthorized access
-- Security threats
-- Lost items
-- Dangerous situations
+10. Minor cleaning or cosmetic problems are Low priority.
 
-Other:
-- Problems that do not fit the above categories.
+11. Normal Wi-Fi/network problems are Medium priority.
 
-PRIORITY RULES:
+12. Plumbing leakage is normally Medium priority unless there is an obvious serious safety risk.
 
-HIGH:
-Use High for immediate safety risks such as:
-- Electrical sparks
-- Exposed wires
-- Fire hazards
-- Major flooding
-- Serious security threats
-- Situations that could cause injury
+13. If location is missing, ask:
+"Please provide the location of the problem."
 
-MEDIUM:
-Use Medium for problems that affect normal college activities:
-- Broken classroom fan
-- Broken classroom light
-- Broken projector
-- Internet outage
-- Non-working laboratory equipment
+14. If the problem is missing or unclear, ask:
+"Please describe what is not working or what problem you are experiencing."
 
-LOW:
-Use Low only for minor problems that do not significantly affect activities:
-- Small cleanliness issues
-- Minor cosmetic damage
-- Small paint damage
-
-IMPORTANT:
-A broken classroom fan must be Medium priority.
-
-WHEN INFORMATION IS MISSING:
-Ask the student for the missing information instead of guessing.
 
 WHEN THE COMPLAINT IS COMPLETE:
-Return EXACTLY this structure:
+
+Return EXACTLY this format:
 
 Category: [category]
 Priority: [High/Medium/Low]
@@ -134,24 +90,78 @@ Location: [location]
 Problem: [problem description]
 Recommended Action: [recommended action]
 
-Do not add extra headings before the structured complaint.
 
-Keep responses concise and professional.
+EXAMPLES:
+
+Student:
+"The fan in Room 204 is not working."
+
+Response:
+Category: Electrical
+Priority: Medium
+Location: Room 204
+Problem: Fan is not working
+Recommended Action: Inspect and repair or replace the faulty fan.
+
+
+Student:
+"There are sparks coming from the electrical socket in Lab 3."
+
+Response:
+Category: Electrical
+Priority: High
+Location: Lab 3
+Problem: Sparks coming from electrical socket
+Recommended Action: Immediately isolate the electrical supply if safe to do so and have the socket inspected by qualified maintenance staff.
+
+
+Student:
+"There is water leakage."
+
+Response:
+Please provide the location of the problem.
+
+
+Student:
+"The Wi-Fi is not working in Lab 2."
+
+Response:
+Category: Internet/Network
+Priority: Medium
+Location: Lab 2
+Problem: Wi-Fi is not working
+Recommended Action: Check the network connection, access point, and related network equipment.
+
+
+Student:
+"The classroom is dirty in Room 301."
+
+Response:
+Category: Cleaning
+Priority: Low
+Location: Room 301
+Problem: Classroom is dirty
+Recommended Action: Request cleaning staff to clean and inspect the classroom.
 `;
 
 
-/* =========================
-   HEALTH CHECK
-========================= */
+// ==========================================
+// HOME / HEALTH CHECK
+// ==========================================
 
 app.get("/", (req, res) => {
-    res.send("CampusCare AI Backend is Running!");
+
+    res.json({
+        success: true,
+        message: "CampusCare AI backend is running"
+    });
+
 });
 
 
-/* =========================
-   AI CHAT API
-========================= */
+// ==========================================
+// CHAT API
+// ==========================================
 
 app.post("/api/chat", async (req, res) => {
 
@@ -159,212 +169,232 @@ app.post("/api/chat", async (req, res) => {
 
         const { message, sessionId } = req.body;
 
+
         if (!message || !message.trim()) {
-            return res.status(400).json({
-                reply: "Please enter a complaint."
-            });
-        }
-
-        const id = sessionId || "default";
-
-        if (!conversations[id]) {
-            conversations[id] = [];
-        }
-
-
-        conversations[id].push({
-            role: "user",
-            content: message.trim()
-        });
-
-
-        const conversationText = conversations[id]
-            .map(item => `${item.role}: ${item.content}`)
-            .join("\n");
-
-
-        const prompt = `
-${systemPrompt}
-
-CONVERSATION HISTORY:
-${conversationText}
-
-Analyze the latest user message using the complete conversation history.
-`;
-
-
-        const response = await ai.models.generateContent({
-            model: "gemini-3.1-flash-lite",
-            contents: prompt
-        });
-
-
-        const aiReply =
-            response.text ||
-            "Sorry, I could not analyze the complaint.";
-
-
-        conversations[id].push({
-            role: "assistant",
-            content: aiReply
-        });
-
-
-        // Keep conversation memory limited
-        if (conversations[id].length > 12) {
-            conversations[id] =
-                conversations[id].slice(-12);
-        }
-
-
-        res.json({
-            reply: aiReply
-        });
-
-    } catch (error) {
-
-        console.error("AI Error:", error);
-
-        res.status(500).json({
-            reply: "AI service error. Please try again later."
-        });
-
-    }
-
-});
-
-
-/* =========================
-   SUBMIT COMPLAINT API
-========================= */
-
-app.post("/api/complaints", async (req, res) => {
-
-    try {
-
-        const {
-            category,
-            priority,
-            location,
-            problem,
-            recommendedAction
-        } = req.body;
-
-        if (!category || !priority || !problem) {
 
             return res.status(400).json({
                 success: false,
-                message: "Incomplete complaint information."
+                error: "Message is required."
             });
 
         }
 
-        const complaintId = `CC-${Date.now()}`;
 
-        const complaint = await Complaint.create({
+        const currentSession =
+            sessionId || "default";
 
-            complaintId,
 
-            category,
+        if (!conversations[currentSession]) {
 
-            priority,
+            conversations[currentSession] = [];
 
-            location: location || "Not specified",
+        }
 
-            problem,
 
-            recommendedAction:
-                recommendedAction || "Not specified",
+        // Save student message
+        conversations[currentSession].push({
+            role: "user",
+            text: message.trim()
+        });
 
-            status: "Open"
+
+        // Keep recent conversation only
+        const recentHistory =
+            conversations[currentSession]
+                .slice(-10);
+
+
+        // Create Gemini conversation
+        const contents = recentHistory.map(item => ({
+
+            role:
+                item.role === "user"
+                    ? "user"
+                    : "model",
+
+            parts: [
+                {
+                    text: item.text
+                }
+            ]
+
+        }));
+
+
+        // Add system instructions to first user message
+        const requestContents = [
+
+            {
+                role: "user",
+
+                parts: [
+                    {
+                        text:
+                            SYSTEM_PROMPT +
+                            "\n\nStudent complaint:\n" +
+                            message.trim()
+                    }
+                ]
+
+            }
+
+        ];
+
+
+        // Add previous conversation after system instructions
+        if (contents.length > 1) {
+
+            requestContents.push(
+                ...contents.slice(0, -1)
+            );
+
+        }
+
+
+        // ======================================
+        // GEMINI API
+        // ======================================
+
+        const apiKey =
+            process.env.GEMINI_API_KEY;
+
+
+        if (!apiKey) {
+
+            return res.status(500).json({
+
+                success: false,
+
+                error:
+                    "GEMINI_API_KEY is missing from .env file."
+
+            });
+
+        }
+
+
+        const geminiURL =
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=" +
+            apiKey;
+
+
+        const geminiResponse =
+            await fetch(geminiURL, {
+
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+
+                    contents: requestContents
+
+                })
+
+            });
+
+
+        const geminiData =
+            await geminiResponse.json();
+
+
+        if (!geminiResponse.ok) {
+
+            console.error(
+                "Gemini API Error:",
+                geminiData
+            );
+
+
+            return res.status(
+                geminiResponse.status
+            ).json({
+
+                success: false,
+
+                error:
+                    geminiData?.error?.message ||
+                    "Gemini API request failed."
+
+            });
+
+        }
+
+
+        const reply =
+            geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+
+        if (!reply) {
+
+            return res.status(500).json({
+
+                success: false,
+
+                error:
+                    "Gemini returned an empty response."
+
+            });
+
+        }
+
+
+        // Save AI response
+        conversations[currentSession].push({
+
+            role: "model",
+
+            text: reply
 
         });
+
+
+        // Return response
+        res.json({
+
+            success: true,
+
+            reply: reply
+
+        });
+
+
+    } catch (error) {
+
+        console.error(
+            "Server Error:",
+            error
+        );
+
+
+        res.status(500).json({
+
+            success: false,
+
+            error:
+                "Unable to process the complaint."
+
+        });
+
+    }
+
+});
+
+
+// ==========================================
+// START SERVER
+// ==========================================
+
+app.listen(
+    PORT,
+    "0.0.0.0",
+    () => {
 
         console.log(
-            "New Complaint Saved to MongoDB:",
-            complaint.complaintId
+            `Server running on port ${PORT}`
         );
-
-        res.status(201).json({
-
-            success: true,
-
-            message:
-                "Complaint submitted successfully.",
-
-            complaint
-
-        });
-
-    } catch (error) {
-
-        console.error(
-            "Complaint Error:",
-            error.message
-        );
-
-        res.status(500).json({
-
-            success: false,
-
-            message:
-                "Could not submit complaint."
-
-        });
 
     }
-
-});
-
-/* =========================
-   VIEW COMPLAINTS
-========================= */
-
-/* =========================
-   VIEW COMPLAINTS
-========================= */
-
-app.get("/api/complaints", async (req, res) => {
-
-    try {
-
-        const complaints = await Complaint.find()
-            .sort({ createdAt: -1 });
-
-        res.json({
-            success: true,
-            total: complaints.length,
-            complaints
-        });
-
-    } catch (error) {
-
-        console.error(
-            "Fetch Complaints Error:",
-            error.message
-        );
-
-        res.status(500).json({
-            success: false,
-            message:
-                "Could not fetch complaints."
-        });
-
-    }
-
-});
-
-
-/* =========================
-   SERVER
-========================= */
-
-const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-
-    console.log(
-        `Server running on port ${PORT}`
-    );
-
-});
+);

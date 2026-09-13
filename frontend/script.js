@@ -1,27 +1,35 @@
 const sessionId = "student-" + Date.now();
 
+
+/* =========================
+   DOM ELEMENTS
+========================= */
+
 const userInput = document.getElementById("userInput");
 const sendBtn = document.getElementById("sendBtn");
 const chatBox = document.getElementById("chatBox");
 
 
-// Backend API URLs
+/* =========================
+   BACKEND API URL
+========================= */
 
 const API_URL = "http://localhost:5000/api/chat";
 
-const COMPLAINT_API_URL =
-    "http://localhost:5000/api/complaints";
 
-
-// =========================
-// EVENT LISTENERS
-// =========================
+/* =========================
+   SEND BUTTON
+========================= */
 
 sendBtn.addEventListener(
     "click",
     sendMessage
 );
 
+
+/* =========================
+   ENTER KEY
+========================= */
 
 userInput.addEventListener(
     "keydown",
@@ -42,9 +50,9 @@ userInput.addEventListener(
 );
 
 
-// =========================
-// QUICK BUTTONS
-// =========================
+/* =========================
+   QUICK COMPLAINT BUTTONS
+========================= */
 
 document
     .querySelectorAll(".quick-btn")
@@ -68,9 +76,9 @@ document
     });
 
 
-// =========================
-// SIDEBAR BUTTONS
-// =========================
+/* =========================
+   FEATURE BUTTONS
+========================= */
 
 document
     .querySelectorAll(".feature-item")
@@ -98,9 +106,9 @@ document
     });
 
 
-// =========================
-// SEND MESSAGE
-// =========================
+/* =========================
+   SEND MESSAGE
+========================= */
 
 async function sendMessage() {
 
@@ -113,11 +121,23 @@ async function sendMessage() {
     }
 
 
+    /* =========================
+       SHOW USER MESSAGE
+    ========================= */
+
     addUserMessage(message);
 
 
+    /* =========================
+       CLEAR INPUT
+    ========================= */
+
     userInput.value = "";
 
+
+    /* =========================
+       DISABLE SEND BUTTON
+    ========================= */
 
     sendBtn.disabled = true;
 
@@ -126,11 +146,19 @@ async function sendMessage() {
     `;
 
 
+    /* =========================
+       SHOW LOADING
+    ========================= */
+
     const loadingId =
         addLoadingMessage();
 
 
     try {
+
+        /* =========================
+           SEND REQUEST TO BACKEND
+        ========================= */
 
         const response =
             await fetch(API_URL, {
@@ -145,11 +173,9 @@ async function sendMessage() {
                 body: JSON.stringify({
 
                     message:
-
                         message,
 
                     sessionId:
-
                         sessionId
 
                 })
@@ -157,14 +183,26 @@ async function sendMessage() {
             });
 
 
+        /* =========================
+           READ RESPONSE
+        ========================= */
+
         const data =
             await response.json();
 
+
+        /* =========================
+           REMOVE LOADING
+        ========================= */
 
         removeMessage(
             loadingId
         );
 
+
+        /* =========================
+           CHECK RESPONSE
+        ========================= */
 
         if (!response.ok) {
 
@@ -179,6 +217,10 @@ async function sendMessage() {
         }
 
 
+        /* =========================
+           SHOW AI RESPONSE
+        ========================= */
+
         addBotMessage(
             data.reply
         );
@@ -192,10 +234,18 @@ async function sendMessage() {
         );
 
 
+        /* =========================
+           REMOVE LOADING
+        ========================= */
+
         removeMessage(
             loadingId
         );
 
+
+        /* =========================
+           ERROR MESSAGE
+        ========================= */
 
         addBotMessage(
             "Sorry, I could not process your request right now. Please try again."
@@ -203,6 +253,10 @@ async function sendMessage() {
 
     }
 
+
+    /* =========================
+       ENABLE SEND BUTTON
+    ========================= */
 
     sendBtn.disabled = false;
 
@@ -214,9 +268,9 @@ async function sendMessage() {
 }
 
 
-// =========================
-// USER MESSAGE
-// =========================
+/* =========================
+   ADD USER MESSAGE
+========================= */
 
 function addUserMessage(message) {
 
@@ -257,9 +311,9 @@ function addUserMessage(message) {
 }
 
 
-// =========================
-// BOT MESSAGE
-// =========================
+/* =========================
+   ADD BOT MESSAGE
+========================= */
 
 function addBotMessage(message) {
 
@@ -272,6 +326,10 @@ function addBotMessage(message) {
         "bot-message"
     );
 
+
+    /* =========================
+       CHECK FOR COMPLAINT ANALYSIS
+    ========================= */
 
     const isComplaintAnalysis =
 
@@ -291,8 +349,16 @@ function addBotMessage(message) {
     let content = "";
 
 
+    /* =========================
+       STRUCTURED COMPLAINT
+    ========================= */
+
     if (isComplaintAnalysis) {
 
+
+        /* =========================
+           EXTRACT CATEGORY
+        ========================= */
 
         const category =
             extractField(
@@ -302,6 +368,10 @@ function addBotMessage(message) {
             );
 
 
+        /* =========================
+           EXTRACT PRIORITY
+        ========================= */
+
         const priority =
             extractField(
                 message,
@@ -309,6 +379,10 @@ function addBotMessage(message) {
                 "Location:"
             );
 
+
+        /* =========================
+           EXTRACT LOCATION
+        ========================= */
 
         const location =
             extractField(
@@ -318,6 +392,10 @@ function addBotMessage(message) {
             );
 
 
+        /* =========================
+           EXTRACT PROBLEM
+        ========================= */
+
         const problem =
             extractField(
                 message,
@@ -326,6 +404,10 @@ function addBotMessage(message) {
             );
 
 
+        /* =========================
+           EXTRACT RECOMMENDED ACTION
+        ========================= */
+
         const recommendedAction =
             extractField(
                 message,
@@ -333,6 +415,10 @@ function addBotMessage(message) {
                 null
             );
 
+
+        /* =========================
+           CREATE ANALYSIS CARD
+        ========================= */
 
         content = `
 
@@ -347,6 +433,8 @@ function addBotMessage(message) {
 
             <div class="analysis-grid">
 
+
+                <!-- CATEGORY -->
 
                 <div class="analysis-item">
 
@@ -365,6 +453,7 @@ function addBotMessage(message) {
                 </div>
 
 
+                <!-- PRIORITY -->
 
                 <div class="analysis-item">
 
@@ -383,6 +472,7 @@ function addBotMessage(message) {
                 </div>
 
 
+                <!-- LOCATION -->
 
                 <div class="analysis-item full-width">
 
@@ -401,6 +491,7 @@ function addBotMessage(message) {
                 </div>
 
 
+                <!-- PROBLEM -->
 
                 <div class="analysis-item full-width">
 
@@ -419,6 +510,7 @@ function addBotMessage(message) {
                 </div>
 
 
+                <!-- RECOMMENDED ACTION -->
 
                 <div class="analysis-item action-item full-width">
 
@@ -441,17 +533,12 @@ function addBotMessage(message) {
 
             </div>
 
-
-            <button
-                class="submit-complaint-btn"
-            >
-                <i class="fa-solid fa-paper-plane"></i>
-
-                Submit Complaint
-            </button>
-
         `;
 
+
+        /* =========================
+           AI MESSAGE HTML
+        ========================= */
 
         messageDiv.innerHTML = `
 
@@ -464,7 +551,6 @@ function addBotMessage(message) {
 
             <div class="message-content">
 
-
                 <div class="message-label">
                     CampusCare AI
                 </div>
@@ -476,44 +562,17 @@ function addBotMessage(message) {
 
                 </div>
 
-
             </div>
 
         `;
 
 
-        const submitButton =
-            messageDiv.querySelector(
-                ".submit-complaint-btn"
-            );
-
-
-        submitButton.addEventListener(
-            "click",
-            function () {
-
-                submitComplaint(
-
-                    category,
-
-                    priority,
-
-                    location,
-
-                    problem,
-
-                    recommendedAction,
-
-                    submitButton
-
-                );
-
-            }
-        );
-
-
     } else {
 
+
+        /* =========================
+           NORMAL AI MESSAGE
+        ========================= */
 
         content =
             escapeHTML(message)
@@ -534,7 +593,6 @@ function addBotMessage(message) {
 
             <div class="message-content">
 
-
                 <div class="message-label">
                     CampusCare AI
                 </div>
@@ -546,13 +604,16 @@ function addBotMessage(message) {
 
                 </div>
 
-
             </div>
 
         `;
 
     }
 
+
+    /* =========================
+       ADD TO CHAT
+    ========================= */
 
     chatBox.appendChild(
         messageDiv
@@ -564,9 +625,9 @@ function addBotMessage(message) {
 }
 
 
-// =========================
-// EXTRACT AI FIELDS
-// =========================
+/* =========================
+   EXTRACT AI FIELDS
+========================= */
 
 function extractField(
     message,
@@ -625,169 +686,9 @@ function extractField(
 }
 
 
-// =========================
-// SUBMIT COMPLAINT
-// =========================
-
-async function submitComplaint(
-
-    category,
-
-    priority,
-
-    location,
-
-    problem,
-
-    recommendedAction,
-
-    button
-
-) {
-
-    button.disabled = true;
-
-
-    button.innerHTML = `
-
-        <i class="fa-solid fa-spinner fa-spin"></i>
-
-        Submitting...
-
-    `;
-
-
-    try {
-
-        const response =
-            await fetch(
-
-                COMPLAINT_API_URL,
-
-                {
-
-                    method: "POST",
-
-                    headers: {
-
-                        "Content-Type":
-                            "application/json"
-
-                    },
-
-                    body: JSON.stringify({
-
-                        category,
-
-                        priority,
-
-                        location,
-
-                        problem,
-
-                        recommendedAction
-
-                    })
-
-                }
-
-            );
-
-
-        const data =
-            await response.json();
-
-
-        if (!response.ok) {
-
-            throw new Error(
-
-                data.message ||
-
-                "Submission failed."
-
-            );
-
-        }
-
-
-        button.outerHTML = `
-
-            <div class="complaint-success">
-
-                <i class="fa-solid fa-circle-check"></i>
-
-
-                <div>
-
-                    <strong>
-
-                        Complaint Submitted Successfully
-
-                    </strong>
-
-
-                    <p>
-
-                        Complaint ID:
-
-                        ${escapeHTML(
-                            data.complaint.complaintId
-                        )}
-
-                    </p>
-
-
-                    <p>
-
-                        Status:
-
-                        ${escapeHTML(
-                            data.complaint.status
-                        )}
-
-                    </p>
-
-
-                </div>
-
-            </div>
-
-        `;
-
-
-    } catch (error) {
-
-        console.error(
-            "Complaint Submission Error:",
-            error
-        );
-
-
-        button.disabled = false;
-
-
-        button.innerHTML = `
-
-            <i class="fa-solid fa-paper-plane"></i>
-
-            Submit Complaint
-
-        `;
-
-
-        alert(
-            "Could not submit complaint. Please try again."
-        );
-
-    }
-
-}
-
-
-// =========================
-// LOADING MESSAGE
-// =========================
+/* =========================
+   LOADING MESSAGE
+========================= */
 
 function addLoadingMessage() {
 
@@ -851,9 +752,9 @@ function addLoadingMessage() {
 }
 
 
-// =========================
-// REMOVE MESSAGE
-// =========================
+/* =========================
+   REMOVE MESSAGE
+========================= */
 
 function removeMessage(id) {
 
@@ -870,9 +771,9 @@ function removeMessage(id) {
 }
 
 
-// =========================
-// ESCAPE HTML
-// =========================
+/* =========================
+   ESCAPE HTML
+========================= */
 
 function escapeHTML(text) {
 
@@ -889,9 +790,9 @@ function escapeHTML(text) {
 }
 
 
-// =========================
-// SCROLL CHAT
-// =========================
+/* =========================
+   SCROLL CHAT
+========================= */
 
 function scrollChat() {
 
